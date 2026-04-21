@@ -31,6 +31,52 @@ NOTE_ALIASES = {
     "si": "Si",
 }
 
+LATEX_DELIMITERS = [
+    {"left": "$$", "right": "$$", "display": True},
+    {"left": "$", "right": "$", "display": False},
+]
+
+with open("documentation_fr.md", "r", encoding="utf-8") as f:
+    DOCUMENTATION_fr = f.read()
+
+with open("documentation_en.md", "r", encoding="utf-8") as f:
+    DOCUMENTATION_en = f.read()
+
+
+def split_markdown_by_h2(markdown_text: str) -> dict[str, str]:
+    sections = {}
+    parts = re.split(r"(?m)^##\s+", markdown_text.strip())
+
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        lines = part.splitlines()
+        title = lines[0].strip()
+
+        if title.lower() in {"table des matières", "table of contents"}:
+            continue
+
+        sections[title] = "## " + part
+
+    return sections
+
+
+DOC_FR_SECTIONS = split_markdown_by_h2(DOCUMENTATION_fr)
+DOC_EN_SECTIONS = split_markdown_by_h2(DOCUMENTATION_en)
+
+DOC_FR_TITLES = list(DOC_FR_SECTIONS.keys())
+DOC_EN_TITLES = list(DOC_EN_SECTIONS.keys())
+
+
+def load_doc_fr_section(title: str) -> str:
+    return DOC_FR_SECTIONS[title]
+
+
+def load_doc_en_section(title: str) -> str:
+    return DOC_EN_SECTIONS[title]
+    
 
 def normalize_text(text: str) -> str:
     text = unicodedata.normalize("NFD", text)
@@ -237,70 +283,81 @@ def make_note_handler(note_name: str):
 
 
 with gr.Blocks(title="Monofrequency note generator") as demo:
-    gr.Markdown("## Monofrequency note generator")
+    with gr.Tab("App"):
+        octave_state = gr.State(0)
 
-    octave_state = gr.State(0)
+        with gr.Row():
+            octave_down_button = gr.Button("Octave -")
+            octave_display = gr.Textbox(
+                label="Current octave",
+                value="+0",
+                interactive=False
+            )
+            octave_up_button = gr.Button("Octave +")
+            duration_input = gr.Number(
+                label="Duration per note (s)",
+                value=DEFAULT_DURATION,
+                precision=2,
+                minimum=0.05,
+                maximum=10.0,
+                step=0.05
+            )
 
-    with gr.Row():
-        octave_down_button = gr.Button("Octave -")
-        octave_display = gr.Textbox(
-            label="Current octave",
-            value="+0",
-            interactive=False
+        with gr.Row():
+            note_buttons = []
+            for note_name in NOTES.keys():
+                note_buttons.append(gr.Button(note_name))
+
+        with gr.Row():
+            sequence_input = gr.Textbox(
+                label="Sequence of notes",
+                placeholder="Example: Do Re Mi Fa Sol La Si or Do+1 Re Mi Sol-1",
+                lines=2
+            )
+            sequence_button = gr.Button("Play sequence")
+
+        audio_output = gr.Audio(
+            label="Generated note / sequence",
+            autoplay=True,
+            interactive=False,
+            format="wav"
         )
-        octave_up_button = gr.Button("Octave +")
-        duration_input = gr.Number(
-            label="Duration per note (s)",
-            value=DEFAULT_DURATION,
-            precision=2,
-            minimum=0.05,
-            maximum=10.0,
-            step=0.05
+
+        with gr.Row():
+            time_plot_output = gr.Plot(label="Time view")
+            frequency_plot_output = gr.Plot(label="Frequency view")
+            time_frequency_plot_output = gr.Plot(label="Time-frequency view")
+
+        status_box = gr.Textbox(label="Status", value="Ready", interactive=False)
+
+        octave_down_button.click(
+            fn=lambda octave: change_octave(octave, -1),
+            inputs=[octave_state],
+            outputs=[octave_state, octave_display, status_box]
         )
 
-    with gr.Row():
-        note_buttons = []
-        for note_name in NOTES.keys():
-            note_buttons.append(gr.Button(note_name))
-
-    with gr.Row():
-        sequence_input = gr.Textbox(
-            label="Sequence of notes",
-            placeholder="Example: Do Re Mi Fa Sol La Si or Do+1 Re Mi Sol-1",
-            lines=2
+        octave_up_button.click(
+            fn=lambda octave: change_octave(octave, +1),
+            inputs=[octave_state],
+            outputs=[octave_state, octave_display, status_box]
         )
-        sequence_button = gr.Button("Play sequence")
 
-    audio_output = gr.Audio(
-        label="Generated note / sequence",
-        autoplay=True,
-        interactive=False,
-        format="wav"
-    )
+        for note_name, button in zip(NOTES.keys(), note_buttons):
+            button.click(
+                fn=make_note_handler(note_name),
+                inputs=[octave_state, duration_input],
+                outputs=[
+                    audio_output,
+                    time_plot_output,
+                    frequency_plot_output,
+                    time_frequency_plot_output,
+                    status_box
+                ]
+            )
 
-    with gr.Row():
-        time_plot_output = gr.Plot(label="Time view")
-        frequency_plot_output = gr.Plot(label="Frequency view")
-        time_frequency_plot_output = gr.Plot(label="Time-frequency view")
-
-    status_box = gr.Textbox(label="Status", value="Ready", interactive=False)
-
-    octave_down_button.click(
-        fn=lambda octave: change_octave(octave, -1),
-        inputs=[octave_state],
-        outputs=[octave_state, octave_display, status_box]
-    )
-
-    octave_up_button.click(
-        fn=lambda octave: change_octave(octave, +1),
-        inputs=[octave_state],
-        outputs=[octave_state, octave_display, status_box]
-    )
-
-    for note_name, button in zip(NOTES.keys(), note_buttons):
-        button.click(
-            fn=make_note_handler(note_name),
-            inputs=[octave_state, duration_input],
+        sequence_button.click(
+            fn=play_sequence,
+            inputs=[sequence_input, octave_state, duration_input],
             outputs=[
                 audio_output,
                 time_plot_output,
@@ -310,17 +367,46 @@ with gr.Blocks(title="Monofrequency note generator") as demo:
             ]
         )
 
-    sequence_button.click(
-        fn=play_sequence,
-        inputs=[sequence_input, octave_state, duration_input],
-        outputs=[
-            audio_output,
-            time_plot_output,
-            frequency_plot_output,
-            time_frequency_plot_output,
-            status_box
-        ]
-    )
+    with gr.Tab("Documentation FR"):
+        with gr.Row():
+            with gr.Column(scale=1):
+                doc_fr_buttons = []
+                for title in DOC_FR_TITLES:
+                    btn = gr.Button(title)
+                    doc_fr_buttons.append((btn, title))
 
+            with gr.Column(scale=3):
+                doc_fr_view = gr.Markdown(
+                    value=load_doc_fr_section(DOC_FR_TITLES[0]),
+                    latex_delimiters=LATEX_DELIMITERS
+                )
+
+        for btn, title in doc_fr_buttons:
+            btn.click(
+                lambda t=title: load_doc_fr_section(t),
+                inputs=None,
+                outputs=doc_fr_view,
+            )
+
+    with gr.Tab("Documentation EN"):
+        with gr.Row():
+            with gr.Column(scale=1):
+                doc_en_buttons = []
+                for title in DOC_EN_TITLES:
+                    btn = gr.Button(title)
+                    doc_en_buttons.append((btn, title))
+
+            with gr.Column(scale=3):
+                doc_en_view = gr.Markdown(
+                    value=load_doc_en_section(DOC_EN_TITLES[0]),
+                    latex_delimiters=LATEX_DELIMITERS
+                )
+
+        for btn, title in doc_en_buttons:
+            btn.click(
+                lambda t=title: load_doc_en_section(t),
+                inputs=None,
+                outputs=doc_en_view,
+            )
 
 demo.launch()

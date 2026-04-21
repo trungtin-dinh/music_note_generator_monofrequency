@@ -82,7 +82,6 @@ def create_time_plot(audio: np.ndarray, sample_rate: int):
         )
     )
     fig.update_layout(
-        title="Time view",
         xaxis_title="Time (s)",
         yaxis_title="Amplitude",
         template="plotly_white"
@@ -104,7 +103,6 @@ def create_frequency_plot(audio: np.ndarray, sample_rate: int):
         )
     )
     fig.update_layout(
-        title="Frequency view",
         xaxis_title="Frequency (Hz)",
         yaxis_title="Magnitude",
         template="plotly_white"
@@ -139,7 +137,6 @@ def create_time_frequency_plot(audio: np.ndarray, sample_rate: int):
         )
     )
     fig.update_layout(
-        title="Time-frequency view",
         xaxis_title="Time (s)",
         yaxis_title="Frequency (Hz)",
         template="plotly_white"

@@ -521,9 +521,11 @@ def render_documentation_tab(
 
     with button_col:
         for index, title in enumerate(titles):
+            is_selected = st.session_state[state_key] == title
             st.button(
                 title,
                 key=f"{state_key}_{index}",
+                type="primary" if is_selected else "secondary",
                 on_click=set_doc_section,
                 args=(state_key, title),
                 width="stretch",

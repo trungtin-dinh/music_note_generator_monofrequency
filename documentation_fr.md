@@ -116,7 +116,7 @@ Transposer une note de $k$ octaves multiplie sa fréquence par $2^k$ :
 
 $$f_{\text{transposed}} = f_{\text{base}} \cdot 2^k, \qquad k \in \mathbb{Z}$$
 
-Pour $k > 0$, la note est transposée vers le haut (hauteur plus élevée) ; pour $k < 0$, elle est transposée vers le bas. Les fréquences de base dans l'application correspondent à l'octave 4 (C4–B4 en notation scientifique). Sélectionner l'octave $+1$ produit C5–B5, et l'octave $-1$ produit C3–B3.
+Pour $k > 0$, la note est transposée vers le haut (hauteur plus élevée) ; pour $k < 0$, elle est transposée vers le bas. Les fréquences de base dans l'application correspondent à l'octave 4 (C4–B4 en notation scientifique). Sélectionner l'octave $+1$ produit C5–B5, et l'octave $-1$ produit C3–B3. L'octave globale est bornée à l'intervalle $[-3, +3]$, maintenant toutes les fréquences générées dans la plage musicalement et perceptivement utile (environ 33 Hz à 3952 Hz).
 
 ### 4.2 Décalage d'octave par note dans les séquences
 
@@ -224,7 +224,7 @@ Le spectre fréquentiel est calculé via `np.fft.rfft`, la **Fast Fourier Transf
 
 $$X[k] = \sum_{n=0}^{N-1} s[n]\, e^{-j2\pi kn/N}, \qquad k = 0, 1, \ldots, \lfloor N/2 \rfloor$$
 
-Les fréquences physiques correspondantes sont $f_k = k \cdot f_s / N$, avec une résolution fréquentielle $\Delta f = f_s / N$. Pour un ton de 0.5 s à $f_s = 44100$ Hz, $N = 22050$ et $\Delta f = 2$ Hz - suffisamment fin pour résoudre des notes musicales adjacentes (le plus petit intervalle de la gamme est d'environ 30 Hz entre Do et Re).
+Les fréquences physiques correspondantes sont $f_k = k \cdot f_s / N$, avec une résolution fréquentielle $\Delta f = f_s / N$. Pour un ton de 0.5 s à $f_s = 44100$ Hz, $N = 22050$ et $\Delta f = 2$ Hz - suffisamment fin pour résoudre des notes musicales adjacentes (le plus petit intervalle de la gamme est d'environ 32 Hz entre Do et Re).
 
 Le spectre d'amplitude $|X[k]|$ est affiché (échelle linéaire). L'affichage est limité à $[0, 2000\text{ Hz}]$ afin de se concentrer sur la zone musicalement pertinente et d'éviter la portion haute fréquence vide.
 
@@ -256,7 +256,7 @@ La **transformée de Fourier à court terme** (STFT) est définie en faisant gli
 
 $$\text{STFT}[n, k] = \sum_{m=0}^{L-1} s[n + m]\, w[m]\, e^{-j2\pi km/L}$$
 
-où $n$ est le **pas temporel** (hop entre fenêtres consécutives) et $k$ l'indice de bin fréquentiel. Le résultat est un **tableau complexe 2D** indexé en temps et en fréquence.
+où $n$ est l'**indice de trame** (position d'échantillon de début de la fenêtre d'analyse) et $k$ l'indice de bin fréquentiel. Le résultat est un **tableau complexe 2D** indexé en temps et en fréquence.
 
 Le **spectrogramme** est le module au carré de la STFT, c'est-à-dire la **densité spectrale de puissance (PSD)** :
 
@@ -321,7 +321,7 @@ Le signal généré est **mono** (un seul canal) : un tableau 1D de $N$ échanti
 | Paramètre | Rôle mathématique | Effet pratique |
 |---|---|---|
 | **Durée par note** $T$ | Définit $N = \lfloor f_s T \rfloor$ échantillons par ton | Les notes longues sont plus faciles à analyser dans le spectrogramme ; les notes courtes mettent à l'épreuve le compromis temps-fréquence |
-| **Octave** $k$ | Multiplicateur fréquentiel $2^k$ appliqué à toutes les fréquences de base des notes | $k = 0$ : plage C4–B4 ; $k = +1$ : C5–B5 ; $k = -1$ : C3–B3 |
+| **Octave** $k$ | Multiplicateur fréquentiel $2^k$ appliqué à toutes les fréquences de base des notes ; borné à $k \in [-3, +3]$ | $k = 0$ : plage C4–B4 ; $k = +1$ : C5–B5 ; $k = -1$ : C3–B3 ; $k = +3$ : C7–B7 (jusqu'à ~3952 Hz) |
 | **Modificateur d'octave par note** $\pm k$ | Décalage additif par rapport à l'octave globale, pour chaque token d'une séquence | Permet des mélodies couvrant plusieurs octaves sans changer le registre global |
 | **Boutons de notes** (Do–Si) | Sélectionne $f_0 \in \{261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88\}$ Hz | Lecture directe d'une note unique avec l'octave et la durée courantes |
 | **Entrée de séquence** | Liste ordonnée de tokens interprétés comme des paires $(f_k, \text{octave}_k)$ | Génère une forme d'onde concaténée avec des silences de 20 ms entre les notes |

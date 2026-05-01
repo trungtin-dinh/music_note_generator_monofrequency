@@ -116,7 +116,7 @@ Shifting a note by $k$ octaves multiplies its frequency by $2^k$:
 
 $$f_{\text{transposed}} = f_{\text{base}} \cdot 2^k, \qquad k \in \mathbb{Z}$$
 
-For $k > 0$, the note is shifted up (higher pitch); for $k < 0$, it is shifted down. The base frequencies in the app correspond to octave 4 (C4–B4 in scientific pitch notation). Selecting octave $+1$ produces C5–B5, and octave $-1$ produces C3–B3.
+For $k > 0$, the note is shifted up (higher pitch); for $k < 0$, it is shifted down. The base frequencies in the app correspond to octave 4 (C4–B4 in scientific pitch notation). Selecting octave $+1$ produces C5–B5, and octave $-1$ produces C3–B3. The global octave is bounded to the range $[-3, +3]$, keeping all generated frequencies within the musically and perceptually useful range (approximately 33 Hz to 3952 Hz).
 
 ### 4.2 Per-Note Octave Shift in Sequences
 
@@ -224,7 +224,7 @@ The frequency spectrum is computed via `np.fft.rfft`, the **real-input Fast Four
 
 $$X[k] = \sum_{n=0}^{N-1} s[n]\, e^{-j2\pi kn/N}, \qquad k = 0, 1, \ldots, \lfloor N/2 \rfloor$$
 
-The corresponding physical frequencies are $f_k = k \cdot f_s / N$, with frequency resolution $\Delta f = f_s / N$. For a 0.5 s tone at $f_s = 44100$ Hz, $N = 22050$ and $\Delta f = 2$ Hz — fine enough to resolve adjacent musical notes (the smallest interval in the scale is about 30 Hz between Do and Re).
+The corresponding physical frequencies are $f_k = k \cdot f_s / N$, with frequency resolution $\Delta f = f_s / N$. For a 0.5 s tone at $f_s = 44100$ Hz, $N = 22050$ and $\Delta f = 2$ Hz — fine enough to resolve adjacent musical notes (the smallest interval in the scale is about 32 Hz between Do and Re).
 
 The magnitude spectrum $|X[k]|$ is plotted (linear scale). The display is limited to $[0, 2000\text{ Hz}]$ to focus on the musically relevant range and avoid the empty high-frequency portion.
 
@@ -256,7 +256,7 @@ The **Short-Time Fourier Transform** (STFT) is defined by sliding an analysis wi
 
 $$\text{STFT}[n, k] = \sum_{m=0}^{L-1} s[n + m]\, w[m]\, e^{-j2\pi km/L}$$
 
-where $n$ is the **hop** (time step between consecutive windows) and $k$ is the frequency bin index. The result is a **2D complex array** indexed by time and frequency.
+where $n$ is the **frame index** (starting sample position of the analysis window) and $k$ is the frequency bin index. The result is a **2D complex array** indexed by time and frequency.
 
 The **spectrogram** is the squared magnitude of the STFT, i.e. the **Power Spectral Density (PSD)**:
 
@@ -321,7 +321,7 @@ The generated signal is **mono** (single channel): a 1D array of $N$ samples. St
 | Parameter | Mathematical role | Practical effect |
 |---|---|---|
 | **Duration per note** $T$ | Sets $N = \lfloor f_s T \rfloor$ samples per tone | Longer notes are easier to analyse in the spectrogram; shorter notes test the time-frequency resolution trade-off |
-| **Octave** $k$ | Frequency multiplier $2^k$ applied to all base note frequencies | $k = 0$: C4–B4 range; $k = +1$: C5–B5; $k = -1$: C3–B3 |
+| **Octave** $k$ | Frequency multiplier $2^k$ applied to all base note frequencies; bounded to $k \in [-3, +3]$ | $k = 0$: C4–B4 range; $k = +1$: C5–B5; $k = -1$: C3–B3; $k = +3$: C7–B7 (up to ~3952 Hz) |
 | **Per-note octave modifier** $\pm k$ | Additive offset to the global octave, per token in a sequence | Allows melodies spanning multiple octaves without changing the global register |
 | **Note buttons** (Do–Si) | Select $f_0 \in \{261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88\}$ Hz | Direct single-note playback with current octave and duration |
 | **Sequence input** | Ordered list of tokens parsed as $(f_k, \text{octave}_k)$ pairs | Generates a concatenated waveform with 20 ms gaps between notes |

@@ -9,7 +9,10 @@ from scipy import signal as sp_signal
 SAMPLE_RATE = 44100
 DEFAULT_DURATION = 0.5
 AMPLITUDE = 0.25
-SEQUENCE_GAP = 0.02  # silence between notes in a sequence
+SEQUENCE_GAP = 0.02 
+
+OCTAVE_MIN = -3
+OCTAVE_MAX = 3
 
 NOTES = {
     "Do": 261.63,
@@ -111,7 +114,7 @@ def sanitize_duration(duration: float | None) -> tuple[float, str | None]:
 
 
 def change_octave(current_octave: int | None, delta: int):
-    octave = int(current_octave or 0) + delta
+    octave = max(OCTAVE_MIN, min(OCTAVE_MAX, int(current_octave or 0) + delta))
     return octave, f"{octave:+d}", f"Octave set to {octave:+d}"
 
 
@@ -282,7 +285,7 @@ def make_note_handler(note_name: str):
     return handler
 
 
-with gr.Blocks(title="Monofrequency note generator") as demo:
+with gr.Blocks(title="Pure Tone Generator") as demo:
     with gr.Tab("App"):
         octave_state = gr.State(0)
 
@@ -298,15 +301,15 @@ with gr.Blocks(title="Monofrequency note generator") as demo:
                 label="Duration per note (s)",
                 value=DEFAULT_DURATION,
                 precision=2,
-                minimum=0.05,
-                maximum=10.0,
+                minimum=0.1,
+                maximum=5.0,
                 step=0.05
             )
 
         with gr.Row():
             note_buttons = []
             for note_name in NOTES.keys():
-                note_buttons.append(gr.Button(note_name))
+                note_buttons.append(gr.Button(note_name, variant="primary"))
 
         with gr.Row():
             sequence_input = gr.Textbox(
@@ -314,7 +317,7 @@ with gr.Blocks(title="Monofrequency note generator") as demo:
                 placeholder="Example: Do Re Mi Fa Sol La Si or Do+1 Re Mi Sol-1",
                 lines=2
             )
-            sequence_button = gr.Button("Play sequence")
+            sequence_button = gr.Button("Play sequence", variant="primary")
 
         audio_output = gr.Audio(
             label="Generated note / sequence",
@@ -369,7 +372,7 @@ with gr.Blocks(title="Monofrequency note generator") as demo:
 
     with gr.Tab("Documentation FR"):
         with gr.Row():
-            with gr.Column(scale=1):
+            with gr.Column(scale=0.5):
                 doc_fr_buttons = []
                 for title in DOC_FR_TITLES:
                     btn = gr.Button(title)
@@ -390,7 +393,7 @@ with gr.Blocks(title="Monofrequency note generator") as demo:
 
     with gr.Tab("Documentation EN"):
         with gr.Row():
-            with gr.Column(scale=1):
+            with gr.Column(scale=0.5):
                 doc_en_buttons = []
                 for title in DOC_EN_TITLES:
                     btn = gr.Button(title)
